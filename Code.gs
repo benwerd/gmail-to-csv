@@ -2,7 +2,7 @@
  * Gmail label → CSV exporter (Google Apps Script)
  * --------------------------------------------------
  * Exports every message under a Gmail label into a Google Sheet (one row per
- * message), then lets you download that sheet as a properly-quoted CSV.
+ * message). Download a CSV when you need one via File → Download → CSV.
  *
  * Designed for a HISTORICAL BACKFILL of a large, tagged mailbox:
  *   - Resumable: stops before Gmail's per-run time limit and picks up where it
@@ -16,15 +16,15 @@
  *   3. Reload the Google Sheet. A "Gmail Export" menu appears (see note below if not).
  *   4. Gmail Export → "Choose Gmail label..." → approve the one-time Google
  *      authorization in the popup → pick your label.
- *   5. Gmail Export → "Export / continue".  Then → "Download as CSV".
+ *   5. Gmail Export → "Export / continue".
+ *   6. When you want a file: File → Download → Comma-separated values (.csv).
  *
  * FIRST-RUN NOTE: on a brand-new script the menu may not show until Google has
  * authorized it once. If you don't see "Gmail Export" after reloading, just
  * reload the sheet a second time. You never need to open the editor to use this.
  *
- * The output CSV keeps a stable messageId key and a full `body` column, shaped for
- * downstream ingestion (e.g. schema-mapping-cli). Parsing the survey content /
- * identifying the person inside each body is a SEPARATE, downstream step.
+ * The sheet keeps a stable messageId key and a full `body` column; download it as
+ * CSV (File → Download) whenever you want to use the data in another tool.
  */
 
 // ============================== CONFIG ==============================
@@ -52,10 +52,7 @@ const CONFIG = {
 
   // Google Sheets caps a single cell at 50,000 characters. Longer bodies are
   // truncated to this length, flagged in the bodyTruncated column, and counted.
-  MAX_BODY_CHARS: 49000,
-
-  // Drive folder where the exported CSV is written.
-  CSV_FOLDER_NAME: 'Gmail Exports'
+  MAX_BODY_CHARS: 49000
 };
 
 const HEADERS = [
@@ -73,7 +70,6 @@ function onOpen() {
     .createMenu('Gmail Export')
     .addItem('1. Choose Gmail label...', 'showLabelPicker')
     .addItem('2. Export / continue', 'runExport')
-    .addItem('3. Download as CSV (to Drive)', 'exportSheetToCsv')
     .addSeparator()
     .addItem('Reset / start over', 'resetProgress')
     .addToUi();
@@ -230,38 +226,8 @@ function exportLabelToSheet() {
     let msg = '✅ Export complete. Added ' + stats.added + ' row(s) this run.';
     if (stats.truncated > 0) msg += ' (' + stats.truncated + ' body/bodies truncated at ' + CONFIG.MAX_BODY_CHARS + ' chars.)';
     Logger.log(msg);
-    toast_(ss, 'Export complete. Now run "Download as CSV".');
+    toast_(ss, 'Export complete. Use File → Download → CSV to get a file.');
   }
-}
-
-// ============================== CSV EXPORT ==============================
-/**
- * Write the staging sheet to a correctly-quoted .csv file in Drive.
- * Returns the file URL (also logged and shown as a toast).
- */
-function exportSheetToCsv() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(CONFIG.TAB_NAME);
-  if (!sheet || sheet.getLastRow() < 2) {
-    throw new Error('Nothing to export yet — run "Export / continue" first.');
-  }
-
-  const data = sheet.getDataRange().getValues();
-  const csv = data.map(function (row) {
-    return row.map(function (cell) {
-      const s = (cell === null || cell === undefined) ? '' : String(cell);
-      return '"' + s.replace(/"/g, '""') + '"'; // RFC-4180 quoting
-    }).join(',');
-  }).join('\r\n');
-
-  const folder = getOrCreateFolder_(CONFIG.CSV_FOLDER_NAME);
-  const stamp = Utilities.formatDate(new Date(), 'UTC', 'yyyyMMdd-HHmmss');
-  const safeLabel = (resolveLabelName_() || 'gmail').replace(/[^a-zA-Z0-9-_]+/g, '_');
-  const file = folder.createFile(safeLabel + '_emails_' + stamp + '.csv', csv, MimeType.CSV);
-
-  Logger.log('✅ CSV created: ' + file.getUrl());
-  toast_(ss, 'CSV created in Drive folder "' + CONFIG.CSV_FOLDER_NAME + '".');
-  return file.getUrl();
 }
 
 // ============================== RESET ==============================
@@ -372,11 +338,6 @@ function removeResumeTriggers_() {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
-}
-
-function getOrCreateFolder_(name) {
-  const it = DriveApp.getFoldersByName(name);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
 }
 
 function toast_(ss, message) {

@@ -1,7 +1,14 @@
 # Gmail label → CSV exporter
 
 A small Google Apps Script that exports **every email under a Gmail label** into a
-Google Sheet (one row per message) and then downloads it as a **CSV**.
+Google Sheet (one row per message). Need a CSV? Use Google Sheets' built-in
+**File → Download → Comma-separated values (.csv)** — it quotes commas and
+newlines correctly, so message bodies stay intact.
+
+> **Not comfortable with code?** Follow **[Getting-Started.md](Getting-Started.md)**
+> instead — it walks you through the whole thing, one gentle step at a time.
+
+*(This README is the technical overview. The step-by-step guide is the friendly one.)*
 
 It's built for a **one-time historical backfill** of a large, already-tagged
 mailbox — the case where Zapier/CloudHQ-style tools hit their row/zap limits.
@@ -32,11 +39,11 @@ From the **Gmail Export** menu, in order:
 
 1. **Choose Gmail label...**
    The **first** click triggers Google's one-time authorization — approve it in
-   the popup (it needs to read Gmail and write the Sheet/CSV). This authorization
-   is unavoidable for any tool that reads your mail, but it happens **right inside
-   the sheet** — no editor needed. A dialog then lists your **actual** Gmail
-   labels; pick one. (Picking from the list avoids "label not found" errors from
-   typos or nested-label paths.) The choice is saved for this sheet.
+   the popup (it needs to read Gmail and write this sheet). This authorization is
+   unavoidable for any tool that reads your mail, but it happens **right inside the
+   sheet** — no editor needed. A dialog then lists your **actual** Gmail labels;
+   pick one. (Picking from the list avoids "label not found" errors from typos or
+   nested-label paths.) The choice is saved for this sheet.
 2. **Export / continue.**
    Fills the **Emails** tab.
    - If the mailbox is large, the run stops after ~5 minutes and (by default)
@@ -44,9 +51,10 @@ From the **Gmail Export** menu, in order:
      tab and come back later.
    - Prefer to drive it yourself? Set `AUTO_RESUME: false` in the code and just
      click **Export / continue** again until it says *"Export complete."*
-3. **Download as CSV (to Drive).**
-   Writes a properly-quoted `.csv` into a Drive folder named **Gmail Exports**
-   (the run log / toast shows the link). That file is the deliverable.
+
+When you want a file, use **File → Download → Comma-separated values (.csv)** with
+the **Emails** tab active. (Sheets exports the *current* tab, and its CSV quoting
+handles the commas and newlines inside message bodies correctly.)
 
 **Start over?** Menu → **Reset / start over** clears the tab and timers (your
 chosen label is kept).
@@ -76,25 +84,21 @@ tagged emails should be the one running it.
 
 One row = one message. A thread with several messages produces several rows.
 
-## Downstream use (schema-mapping-cli)
+## What the CSV is good for
 
-The CSV is shaped to drop straight into
-[`schema-mapping-cli`](https://github.com/NPA-AI-Co-Lab/schema-mapping-cli) as a
-`dataPath` input. That tool reads CSV and its LLM sees **every column**, so the
-full `body` is available for analysis.
-
-> **Scope note:** this script only *extracts* the emails. These are survey
-> responses where the actual subject/person lives **inside the body** and is
-> parsed by a separate downstream step — that mapping is intentionally **not**
-> done here.
+The export keeps a stable `messageId` key and a full `body` column, so the file
+drops cleanly into spreadsheets, databases, or any tool that reads CSV. This
+script only *extracts* the emails — any further analysis happens in whatever tool
+you take the CSV into.
 
 ## Limits & caveats (so nothing surprises you)
 
 - **Cell size / truncation.** Google Sheets caps a cell at 50,000 characters, so
   any body longer than `MAX_BODY_CHARS` (49,000) is clipped, flagged in
-  `bodyTruncated`, and counted in the completion log. Survey emails are
-  effectively never this long — but if yours are, say so and the script can be
-  switched to write the CSV directly (no cell-size cap).
+  `bodyTruncated`, and counted in the completion log. Most email bodies are
+  nowhere near this long — but if yours are, say so and the script can be
+  changed to stream rows straight to a CSV file instead of staging in the sheet
+  (no cell-size cap).
 - **Per-run time.** ~6 min on consumer `@gmail.com`, 30 min on Workspace. Handled
   by the resume logic; Workspace users can raise `MAX_RUNTIME_MS` to `25 * 60 * 1000`.
 - **Daily Gmail read quota.** ~20k message reads/day (consumer), higher on
@@ -103,4 +107,4 @@ full `body` is available for analysis.
 - **Dates are UTC** for consistent downstream parsing.
 - **Dedup is per-thread:** each thread is exported once. For a static historical
   backfill that's exact. (If a thread later gets new replies, re-running won't add
-  them — fine for a one-time survey export.)
+  them — fine for a one-time historical export.)
