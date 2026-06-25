@@ -14,36 +14,49 @@ around them:
 - **Survives the daily Gmail quota** — if it hits the daily read limit it saves
   progress and retries later.
 
-## Setup (5 minutes)
+## Setup (no code editing required)
 
 1. Create or open a **Google Sheet**.
 2. **Extensions → Apps Script.** Delete the placeholder code, paste in
    [`Code.gs`](Code.gs), and **Save**.
-3. At the top of the file, set your label:
-   ```js
-   LABEL_NAME: 'YOUR_LABEL_HERE',
-   ```
-   Use the exact label name. For a **nested** label, use the full path, e.g.
-   `'Surveys/2025'`.
-4. **Reload the Google Sheet.** A new **"Gmail Export"** menu appears.
+3. **Reload the Google Sheet.** A **"Gmail Export"** menu appears.
+   - *First-run quirk:* on a brand-new script the menu sometimes doesn't show
+     until Google has authorized it once. If it's missing, **reload the sheet a
+     second time.** You never need to open the Apps Script editor to use it.
+
+You do **not** edit the code to set a label — you pick it from the menu (below).
 
 ## Running it
 
-From the **Gmail Export** menu:
+From the **Gmail Export** menu, in order:
 
-1. **Export label → sheet (resumable).**
-   The first time, Google asks you to authorize (it needs to read Gmail and
-   write the Sheet/CSV — approve it). It then fills the **Emails** tab.
+1. **Choose Gmail label...**
+   The **first** click triggers Google's one-time authorization — approve it in
+   the popup (it needs to read Gmail and write the Sheet/CSV). This authorization
+   is unavoidable for any tool that reads your mail, but it happens **right inside
+   the sheet** — no editor needed. A dialog then lists your **actual** Gmail
+   labels; pick one. (Picking from the list avoids "label not found" errors from
+   typos or nested-label paths.) The choice is saved for this sheet.
+2. **Export / continue.**
+   Fills the **Emails** tab.
    - If the mailbox is large, the run stops after ~5 minutes and (by default)
-     **keeps going on its own every 5 minutes** until it's finished. You can
-     close the tab; come back later.
-   - Prefer to drive it yourself? Set `AUTO_RESUME: false` and just click the
-     menu item again until it says *"Export complete."*
-2. **Download as CSV (to Drive).**
+     **keeps going on its own every 5 minutes** until finished. You can close the
+     tab and come back later.
+   - Prefer to drive it yourself? Set `AUTO_RESUME: false` in the code and just
+     click **Export / continue** again until it says *"Export complete."*
+3. **Download as CSV (to Drive).**
    Writes a properly-quoted `.csv` into a Drive folder named **Gmail Exports**
    (the run log / toast shows the link). That file is the deliverable.
 
-**Start over?** Menu → **Reset / start over** clears the tab and any timers.
+**Start over?** Menu → **Reset / start over** clears the tab and timers (your
+chosen label is kept).
+
+## Sharing this with someone else
+
+Send them a **copy** of the finished sheet (File → Make a copy, or share and have
+them copy it). The script travels with the sheet. When *they* run it, it
+authorizes under *their* account and exports *their* Gmail — so whoever has the
+tagged emails should be the one running it.
 
 ## Output columns
 
