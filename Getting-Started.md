@@ -43,8 +43,7 @@ You can now close this tab and go back to your spreadsheet.
 
 ## Step 4: Refresh, and find the new menu
 
-Switch back to your spreadsheet tab and **refresh the page** (reload it in your
-browser).
+Close your spreadsheet tab and re-open the sheet from Google Drive.
 
 Look along the top menu bar, just to the right of **Help**. You should see a new
 menu called **Gmail Export**.
