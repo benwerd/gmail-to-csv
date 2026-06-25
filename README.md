@@ -26,7 +26,7 @@ around them:
 1. Create or open a **Google Sheet**.
 2. **Extensions → Apps Script.** Delete the placeholder code, paste in
    [`Code.gs`](Code.gs), and **Save**.
-3. **Reload the Google Sheet.** A **"Gmail Export"** menu appears.
+3. **Close and re-open the Google Sheet.** A **"Gmail Export"** menu appears.
    - *First-run quirk:* on a brand-new script the menu sometimes doesn't show
      until Google has authorized it once. If it's missing, **reload the sheet a
      second time.** You never need to open the Apps Script editor to use it.
